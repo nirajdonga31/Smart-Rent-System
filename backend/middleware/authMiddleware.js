@@ -61,6 +61,43 @@ const protect = async (req, res, next) => {
 };
 
 /**
+ * Middleware that attaches the user when a valid JWT is present, but does not
+ * require authentication for the request to continue.
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
+const optionalAuthenticate = async (req, res, next) => {
+  try {
+    let token;
+
+    if (
+      req.headers.authorization &&
+      req.headers.authorization.startsWith("Bearer")
+    ) {
+      token = req.headers.authorization.split(" ")[1];
+    }
+
+    if (!token) {
+      return next();
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id).select("-password");
+
+    if (user) {
+      req.user = user;
+    }
+
+    next();
+  } catch (error) {
+    // Ignore invalid or expired tokens on optional auth routes and continue as
+    // an anonymous user.
+    next();
+  }
+};
+
+/**
  * Middleware to restrict access based on user roles
  * @param {...String} roles - Allowed roles for the route
  * @returns {Function} Middleware function
@@ -133,6 +170,7 @@ const isPropertyHost = (propertyModel) => {
 module.exports = {
   protect,
   authenticate: protect, // Alias for routes that expect 'authenticate'
+  optionalAuthenticate,
   authorize,
   isPropertyHost,
 };
