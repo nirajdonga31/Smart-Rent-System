@@ -1,6 +1,7 @@
 const {
   protect,
   authenticate,
+  optionalAuthenticate,
   authorize,
   isPropertyHost,
 } = require("./authMiddleware");
@@ -16,6 +17,7 @@ const validateBooking = (schema) => validateRequest(schema, "body");
 module.exports = {
   protect,
   authenticate,
+  optionalAuthenticate,
   authorize,
   isPropertyHost,
   validateProperty,

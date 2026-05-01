@@ -77,6 +77,48 @@ const createBooking = async (req, res) => {
   }
 };
 
+const checkPropertyBookingStatus = async (req, res) => {
+  try {
+    const { propertyId } = req.params;
+
+    const property = await Property.findById(propertyId).select("_id");
+    if (!property) {
+      return res.status(404).json({ message: "Property not found" });
+    }
+
+    if (!req.user) {
+      return res.status(200).json({
+        isConfirmed: false,
+        booking: null,
+      });
+    }
+
+    const booking = await Booking.findOne({
+      property: propertyId,
+      user: req.user._id,
+      status: { $in: ["confirmed", "completed"] },
+    })
+      .sort({ checkIn: -1 })
+      .select("_id checkIn checkOut status paymentStatus");
+
+    res.status(200).json({
+      isConfirmed: Boolean(booking),
+      booking: booking
+        ? {
+            id: booking._id,
+            checkIn: booking.checkIn,
+            checkOut: booking.checkOut,
+            status: booking.status,
+            paymentStatus: booking.paymentStatus,
+          }
+        : null,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
 // @desc    Get all bookings
 // @route   GET /api/bookings
 // @access  Private
@@ -403,6 +445,7 @@ const generateInvoice = async (req, res) => {
 
 module.exports = {
   createBooking,
+  checkPropertyBookingStatus,
   getBookings,
   getBookingById,
   cancelBooking,
